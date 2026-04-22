@@ -34,8 +34,10 @@ def main():
         file = read_to_soundfile_obj(args.filename)
     except FileNotFoundError:
         print("The specified file doesn't exist")
+        return
     except sf.LibsndfileError as e:
         print(e)
+        return
 
     if not (framerate := args.frame_rate):
         framerate = 30

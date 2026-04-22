@@ -2,6 +2,7 @@ import sounddevice as sd
 import soundfile as sf
 import display
 import numpy as np
+import math
 
 class SampleProcessor:
     def __init__(self, file: sf.SoundFile, framerate: int):
@@ -26,7 +27,7 @@ class SampleProcessor:
     def _process_audio(self, audio_frames: np.ndarray, step: int) -> np.ndarray:
         """Plays the audio and calculates amplitude spectrum"""
         sd.play(audio_frames, self._samplerate)
-        left_channel = audio_frames[0]
+        left_channel = audio_frames[:, 0]
         return SampleProcessor.amplitude_spectrum(left_channel, step)
 
     def process_samples(self, stdscr):
@@ -34,7 +35,8 @@ class SampleProcessor:
         Coordinates processing of the samples.
         Needs to be called wrapped with curses.wrapper to provide stdscr.
         """
-        step = self.file.samplerate / self.framerate #number of audio frames to be processed per visual frame
-        with self.file as file:
+        step = math.ceil(self._samplerate / self._framerate) #number of audio frames to be processed per visual frame
+        with self._file as file:
             audio_frames = file.read(step)
-            self._process_audio(audio_frames, step)
+            amplitude = self._process_audio(audio_frames, step)
+            display.display_amplitude(stdscr, amplitude)
