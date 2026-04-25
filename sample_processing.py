@@ -4,6 +4,8 @@ import display
 import numpy as np
 import math
 import amplitude_helper
+from display import AmplitudeDisplay
+from display import LogScaling
 
 class SampleProcessor:
     def __init__(self, file: sf.SoundFile, framerate: int):
@@ -31,7 +33,8 @@ class SampleProcessor:
         Needs to be called wrapped with curses.wrapper to provide stdscr.
         """
         step = math.ceil(self._samplerate / self._framerate) #number of audio frames to be processed per visual frame
+        amp_display = AmplitudeDisplay(stdscr, LogScaling(), self._samplerate)
         with self._file as file:
             audio_frames = file.read(step)
             amplitude = self._process_audio(audio_frames, step)
-            display.display_amplitude(stdscr, amplitude, self._samplerate)
+            amp_display.display_amplitude(amplitude)
