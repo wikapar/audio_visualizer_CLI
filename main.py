@@ -41,7 +41,6 @@ def main():
 
     if not (framerate := args.frame_rate):
         framerate = 30
-
     sp = SampleProcessor(file, framerate)
     curses.wrapper(sp.process_samples)
 
