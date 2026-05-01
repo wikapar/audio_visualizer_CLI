@@ -17,7 +17,11 @@ class ScalingStrategy(ABC):
     @abstractmethod
     def get_increment(self, num_of_bins: int, max_frequency: float, min_frequency: float)-> float:
         pass
-
+"""
+    @abstractmethod
+    def get_bin_from_value(self, num_of_bins: int, increment: float, min_frequency: float) -> float:
+        pass
+"""
 class LogScaling(ScalingStrategy):
     def get_next_bin(self, high_edge: float, increment: float) -> tuple[float, float]:
         return high_edge, high_edge*increment
