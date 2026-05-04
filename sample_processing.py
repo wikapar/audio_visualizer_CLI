@@ -8,9 +8,9 @@ from amplitude_display import LogScaling
 
 class SampleProcessor:
     def __init__(self, file: sf.SoundFile, framerate: int):
-        self._file = file
-        self._framerate = framerate
-        self._samplerate = file.samplerate
+        self._file: sf.SoundFile = file
+        self._framerate: int = framerate
+        self._samplerate: int = file.samplerate
 
     @property
     def framerate(self):
@@ -34,6 +34,9 @@ class SampleProcessor:
         step = math.ceil(self._samplerate / self._framerate) #number of audio frames to be processed per visual frame
         amp_display = AmplitudeDisplay(stdscr, LogScaling(), self._samplerate)
         with self._file as file:
-            audio_frames = file.read(step)
-            amplitude = self._process_audio(audio_frames, step)
-            amp_display.display_amplitude(amplitude)
+            audio_frames = np.zeros(step)
+            while len(audio_frames) != 0:
+                audio_frames = file.read(frames=step, fill_value=0)
+                amplitude = self._process_audio(audio_frames, step)
+                amp_display.display_amplitude(amplitude)
+                sd.wait()
