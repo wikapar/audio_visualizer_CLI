@@ -40,3 +40,4 @@ class SampleProcessor:
                 amplitude = self._process_audio(audio_frames, step)
                 amp_display.display_amplitude(amplitude)
                 sd.wait()
+                stdscr.clear()

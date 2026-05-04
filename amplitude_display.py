@@ -5,8 +5,8 @@ import numpy as np
 import amplitude_helper
 from abc import ABC, abstractmethod
 
-BLACK_SQUARE = 254
-#minimum and maximum frequency that will be displayed in hokertz
+BLACK_SQUARE = ord("■")
+#minimum and maximum frequency that will be displayed in hoertz
 MAX_FREQUENCY = 10000
 MIN_FREQUENCY = 40
 EPSILON = 10**(-12)
@@ -54,11 +54,8 @@ class AmplitudeDisplay:
         x_values and y_values should be the same length.
         The corresponding x and y values should have corresponding indices."""
         for x_val, y_val in zip(x_values, y_values):
-            print(f"Max y index: {curses.LINES - 1}")
-            print(int(y_val) - 1)
             for y in range(curses.LINES - 1, int(y_val) - 1, -1):
-                print("????")
-                self._stdscr.addch(y=y, x=x_val, ch=BLACK_SQUARE)
+                self._stdscr.addch(y, x_val, BLACK_SQUARE)
         self._stdscr.refresh()
 
     def display_amplitude(self, amplitude: np.ndarray):
