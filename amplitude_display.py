@@ -1,5 +1,6 @@
 import curses
-from typing import List
+import math
+from typing import Any, List
 import numpy as np
 import amplitude_helper
 from abc import ABC, abstractmethod
@@ -8,33 +9,35 @@ BLACK_SQUARE = 254
 #minimum and maximum frequency that will be displayed in hokertz
 MAX_FREQUENCY = 10000
 MIN_FREQUENCY = 40
+EPSILON = 10**(-12)
 
 class ScalingStrategy(ABC):
     @abstractmethod
-    def get_next_bin(self, low_edge: float, high_edge: float, increment: float) -> tuple[float, float]:
-        pass
-
-    @abstractmethod
     def get_increment(self, num_of_bins: int, max_frequency: float, min_frequency: float)-> float:
         pass
-"""
     @abstractmethod
-    def get_bin_from_value(self, num_of_bins: int, increment: float, min_frequency: float) -> float:
+    def get_frequency_bin(self, frequency: float, num_of_bins: int, increment: float, min_frequency: float) -> int | None:
         pass
-"""
-class LogScaling(ScalingStrategy):
-    def get_next_bin(self, high_edge: float, increment: float) -> tuple[float, float]:
-        return high_edge, high_edge*increment
 
+class LogScaling(ScalingStrategy):
     def get_increment(self, num_of_bins: int, max_frequency: float, min_frequency: float)-> float:
         return (max_frequency / min_frequency)**(1/(num_of_bins))
 
-class LinearScaling(ScalingStrategy):
-    def get_next_bin(self, high_edge: float, increment: float) -> tuple[float, float]:
-        return high_edge, high_edge + increment
+    def get_frequency_bin(self, frequency, num_of_bins, increment, min_frequency) -> int | None:
+        bin_idx = math.floor(math.log(frequency / min_frequency + EPSILON, increment))
+        if bin_idx >= num_of_bins or bin_idx < 0:
+            return None
+        return bin_idx
 
+class LinearScaling(ScalingStrategy):
     def get_increment(self, num_of_bins: int, max_frequency: float, min_frequency: float)-> float:
         return (max_frequency - min_frequency) / num_of_bins
+
+    def get_frequency_bin(self, frequency, num_of_bins, increment, min_frequency) -> int | None:
+        bin_idx = (frequency - min_frequency) // increment
+        if bin_idx >= num_of_bins or bin_idx < 0:
+            return None
+        return bin_idx
 
 class AmplitudeDisplay:
     def __init__(self, stdscr: curses.window, scaling_strategy: ScalingStrategy, samplerate: int):
@@ -73,31 +76,22 @@ class AmplitudeDisplay:
 
     def agregate_amplitude_values(self, amplitude: np.ndarray, num_of_bins: int) -> np.ndarray:
         """Aggregates FFT amplitude values into spaced bins.
-        The agregated frequency values span from MIN_FREQUENCY to MAX_FREQUENCY.
+        The agregated frequency values span from [MIN_FREQUENCY, MAX_FREQUENCY).
         Values inside bins are combined using root mean square."""
         increment = self._scaling_strategy.get_increment(num_of_bins, MAX_FREQUENCY, MIN_FREQUENCY)
-        low_edge, high_edge = self._scaling_strategy.get_next_bin(MIN_FREQUENCY, increment)
-        bin_values = []
-        rms_values = []
-        for bin_index, amp_value in enumerate(amplitude):
-            if len(rms_values) >= curses.COLS:
-                break
-            frequency = amplitude_helper.FFT_bin_to_hertz(bin_index, self._samplerate, len(amplitude))
-            if frequency > low_edge and frequency <= high_edge:
-                bin_values.append(amp_value)
-            elif frequency > high_edge:
-                rms_values.append(AmplitudeDisplay.rms(np.array(bin_values)))
-                bin_values = []
-                while frequency > high_edge and high_edge <= MAX_FREQUENCY:
-                    low_edge, high_edge = self._scaling_strategy.get_next_bin(high_edge, increment)
-                    rms_values.append(AmplitudeDisplay.rms(np.array(bin_values)))
-                    bin_values = []
-                if high_edge <= MAX_FREQUENCY:
-                    bin_values.append(amp_value)
+        rms_values= np.zeros(num_of_bins)
+        frequency_bin_values = [[] for _i in range(0, num_of_bins)]
+        for fft_bin_index, amp_value in enumerate(amplitude):
+            frequency = amplitude_helper.FFT_bin_to_hertz(fft_bin_index, self._samplerate, len(amplitude))
+            frequency_bin_idx = self._scaling_strategy.get_frequency_bin(frequency, num_of_bins, increment, MIN_FREQUENCY)
+            if frequency_bin_idx is not None:
+                frequency_bin_values[frequency_bin_idx].append(amp_value)
+        for idx, frequency_bin in enumerate(frequency_bin_values):
+            rms_values[idx] = AmplitudeDisplay.rms(frequency_bin)
         return np.array(rms_values)
 
     @staticmethod
-    def rms(array:np.ndarray) -> float:
+    def rms(array: list[float]) -> float:
         if not len(array):
             return 0
         return np.sqrt(np.mean(np.pow(array, 2)))
