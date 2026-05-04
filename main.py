@@ -44,10 +44,5 @@ def main():
     sp = SampleProcessor(file, framerate)
     curses.wrapper(sp.process_samples)
 
-
-
-
-
-
 if __name__ == "__main__":
     main()

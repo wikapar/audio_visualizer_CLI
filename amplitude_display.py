@@ -68,7 +68,7 @@ class AmplitudeDisplay:
         return values_to_draw
 
     def agregate_amplitude_values(self, amplitude: np.ndarray, num_of_bins: int) -> np.ndarray:
-        """Aggregates FFT amplitude values into logarithmically spaced bins.
+        """Aggregates FFT amplitude values into spaced bins.
         The agregated frequency values span from MIN_FREQUENCY to MAX_FREQUENCY.
         Values inside bins are combined using root mean square."""
         increment = self._scaling_strategy.get_increment(num_of_bins, MAX_FREQUENCY, MIN_FREQUENCY)

@@ -1,11 +1,10 @@
 import sounddevice as sd
 import soundfile as sf
-import display
 import numpy as np
 import math
 import amplitude_helper
-from display import AmplitudeDisplay
-from display import LogScaling
+from amplitude_display import AmplitudeDisplay
+from amplitude_display import LogScaling
 
 class SampleProcessor:
     def __init__(self, file: sf.SoundFile, framerate: int):
