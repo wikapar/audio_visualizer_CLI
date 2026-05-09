@@ -61,7 +61,7 @@ class AmplitudeDisplay:
     def display_amplitude(self, amplitude: np.ndarray):
         num_of_bins = curses.COLS
         #index from aggregated_values corresponds to x
-        agregated_values = self.agregate_amplitude_values(amplitude, num_of_bins)
+        agregated_values = self.aggregate_amplitude_values(amplitude, num_of_bins)
         values_to_draw = self.scale_amplitude_values_to_screen(agregated_values, curses.LINES)
         self.plot_values(np.arange(len(values_to_draw)), values_to_draw)
 
@@ -71,18 +71,20 @@ class AmplitudeDisplay:
         values_to_draw = np.abs(values_to_draw - max_y) #inverting values since 0,0 is the top left of the screen
         return values_to_draw
 
-    def agregate_amplitude_values(self, amplitude: np.ndarray, num_of_bins: int) -> np.ndarray:
+    def aggregate_amplitude_values(self, amplitude: np.ndarray, num_of_bins: int) -> np.ndarray:
         """Aggregates FFT amplitude values into spaced bins.
         The agregated frequency values span from [MIN_FREQUENCY, MAX_FREQUENCY).
         Values inside bins are combined using root mean square."""
         increment = self._scaling_strategy.get_increment(num_of_bins, MAX_FREQUENCY, MIN_FREQUENCY)
         rms_values= np.zeros(num_of_bins)
         frequency_bin_values = [[] for _i in range(0, num_of_bins)]
+
         for fft_bin_index, amp_value in enumerate(amplitude):
             frequency = amplitude_helper.FFT_bin_to_hertz(fft_bin_index, self._samplerate, len(amplitude))
             frequency_bin_idx = self._scaling_strategy.get_frequency_bin(frequency, num_of_bins, increment, MIN_FREQUENCY)
             if frequency_bin_idx is not None:
                 frequency_bin_values[frequency_bin_idx].append(amp_value)
+
         for idx, frequency_bin in enumerate(frequency_bin_values):
             rms_values[idx] = AmplitudeDisplay.rms(frequency_bin)
         return np.array(rms_values)
