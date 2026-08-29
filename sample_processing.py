@@ -25,7 +25,7 @@ class SampleProcessor:
         self._samplerate: int = file.samplerate
         self._step = math.ceil(self._samplerate / self._framerate) #number of audio frames to be processed per visual frame
         self._stream: sd.OutputStream = sd.OutputStream(samplerate=self._samplerate,
-        blocksize=self._step, latency='low', callback=self.callback)
+        blocksize=self._step, latency='low', callback=self.callback, channels=2)
         self._audio_queue: Queue = Queue() #queue for playback
         self._amplitude_queue: Queue = Queue() #queue for drawing
         self._error_queue: Queue = Queue() #queue for passing errors from different threads
