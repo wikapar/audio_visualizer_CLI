@@ -33,7 +33,7 @@ class LinearScaling(ScalingStrategy):
         return (max_frequency - min_frequency) / num_of_bins
 
     def get_frequency_bin(self, frequency, num_of_bins, increment, min_frequency) -> int | None:
-        bin_idx = (frequency - min_frequency) // increment
+        bin_idx = math.floor((frequency - min_frequency) / increment)
         if bin_idx >= num_of_bins or bin_idx < 0:
             return None
         return bin_idx
