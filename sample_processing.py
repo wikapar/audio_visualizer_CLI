@@ -54,51 +54,52 @@ class SampleProcessor:
     def callback(self, outdata: np.ndarray, frames: int,
          time: CData, status: CallbackFlags) -> None:
         """Callback passed to the output stream.
-        Returns all zeros (silence) in case of underflow or when no audio data is in the audio queue.
+        Returns all zeros (silence) when no audio data is in the audio queue.
         Returns sd.CallbackStop when playback is finished."""
-        assert frames == self._step
-        if status.output_underflow:
-            print('Detected stream underflow')
-            self._error_queue.put(sd.CallbackAbort())
-            self._error_event.set()
-            raise sd.CallbackAbort()
-        assert not status
-
         try:
             next_audio = self._audio_queue.get_nowait()
 
-        #if no new adio data to play on time, play silence
-        except q.Empty as e:
-            outdata[:] = b'\x00' * len(outdata)
-            self._consumed_blocks += 1
+        #if no new adio data to play on time, play silence, doesn't consume any block
+        except q.Empty as _e:
+            outdata.fill(0)
             return
 
-        # te value None when the queue isn't empty means playback is finished
+        # the value None when the queue isn't empty means playback is finished
         if next_audio is None:
-            print('audio playback finished')
+            outdata.fill(0)
             self._consumed_blocks += 1
             raise sd.CallbackStop
 
-        #case for the last block of data - padding with 0
-        len_difference = len(outdata) - len(next_audio)
-        if len_difference > 0:
-            outdata[:len(next_audio)] = next_audio
-            outdata[len(next_audio):] = b'\x00' * len_difference
-            self._consumed_blocks += 1
-        else:
-            self._consumed_blocks += 1
-            outdata[:] = next_audio
+        self._consumed_blocks += 1
+        outdata[:] = next_audio
+
+    def _pad_audio(self, audio_frames):
+        """Pads audio with zeros if it's shorter than expected. Assumes two channel audio."""
+        if len(audio_frames) < self._step:
+            #without dtype could produce float64 values
+            padding = np.zeros((self._step - len(audio_frames), 2), dtype=audio_frames.dtype)
+            audio_frames = np.vstack((audio_frames, padding))
+        return audio_frames
+
 
     def produce_blocks(self):
         """Producer for the audio queue and the amplitude queue.
-        Pushes 'EOF' string into queues when all data is read from the file."""
+        Pushes None value into queues when all data is read from the file."""
         with self._file as file:
             audio_frames = np.zeros(self._step)
+            eof = False
 
-            while len(audio_frames) != 0:
+            while eof == False:
                 try:
-                    audio_frames = file.read(frames=self._step)
+                    audio_frames = file.read(frames=self._step, always_2d=True)
+
+                    if(len(audio_frames) == 0):
+                        eof = True
+                        continue
+
+                    audio_frames = self._pad_audio(audio_frames)
                     self._audio_queue.put_nowait(audio_frames)
+
                     amplitude = self._process_audio(audio_frames, self._step)
                     self._amplitude_queue.put_nowait(amplitude)
 
