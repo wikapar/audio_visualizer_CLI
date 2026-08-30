@@ -30,8 +30,8 @@ class SampleProcessor:
         self._amplitude_queue: Queue = Queue() #queue for drawing
         self._error_queue: Queue = Queue() #queue for passing errors from different threads
         self._error_event: Event = Event()
-        self._consumed_blocks: int = 0
-        self._last_drawn_block: int = 0
+        self._consumed_blocks: int = 0 # number of blocks consumed by the audio callback
+        self._last_drawn_block: int = 0 # number of blocks drawn by draw_blocks method
 
     @property
     def framerate(self):
@@ -54,7 +54,7 @@ class SampleProcessor:
     def callback(self, outdata: np.ndarray, frames: int,
          time: CData, status: CallbackFlags) -> None:
         """Callback passed to the output stream.
-        Returns sd.CallbackAbort in case of underflow or when no audio data is in the audio queue.
+        Returns all zeros (silence) in case of underflow or when no audio data is in the audio queue.
         Returns sd.CallbackStop when playback is finished."""
         assert frames == self._step
         if status.output_underflow:
@@ -66,12 +66,14 @@ class SampleProcessor:
 
         try:
             next_audio = self._audio_queue.get_nowait()
-        except q.Empty as e:
-            print('No new audio data to play')
-            self._error_queue.put(sd.CallbackAbort())
-            self._error_event.set()
-            raise sd.CallbackAbort()
 
+        #if no new adio data to play on time, play silence
+        except q.Empty as e:
+            outdata[:] = b'\x00' * len(outdata)
+            self._consumed_blocks += 1
+            return
+
+        # te value None when the queue isn't empty means playback is finished
         if next_audio is None:
             print('audio playback finished')
             self._consumed_blocks += 1
