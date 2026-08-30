@@ -4,6 +4,7 @@ import os
 from typing import Tuple
 import soundfile as sf
 import numpy as np
+from amplitude_display import LinearScaling, LogScaling
 from sample_processing import SampleProcessor
 
 def read_file(filename: str) -> Tuple[np.ndarray, int]:
@@ -25,9 +26,18 @@ def read_to_soundfile_obj(filename: str) -> sf.SoundFile:
         raise FileNotFoundError
 
 def one_char(arg: str) -> str:
+    """Validator for parsng the symbol argument. Checks if the string is one character long."""
     if len(arg) != 1:
         raise argparse.ArgumentTypeError("Symbol must be exactly one character")
     return arg
+
+def scale_strategy_factory(name: str):
+    """Simple factory method returning ScalingStrategy object based on a name"""
+    strategies = {
+    "linear": LinearScaling,
+    "log": LogScaling,
+}
+    return strategies[name]()
 
 def main():
     parser = argparse.ArgumentParser(
@@ -37,6 +47,8 @@ def main():
     parser.add_argument('filename', type=str)
     parser.add_argument('-f', '--frame-rate', type=int, help="framerate of the display")
     parser.add_argument('-s','--symbol',type=one_char, help="symbol that will be used for display")
+    parser.add_argument('-sc', '--scale', choices=['linear', 'log'], 
+                        help="choose the scale the display will use", default='log')
     args = parser.parse_args()
     try:
         file = read_to_soundfile_obj(args.filename)
@@ -52,7 +64,10 @@ def main():
 
     if not (symbol := args.symbol):
         symbol = '■'
-    sp = SampleProcessor(file, framerate, symbol)
+
+    scale = scale_strategy_factory(args.scale)
+
+    sp = SampleProcessor(file, framerate, symbol, scale)
     curses.wrapper(sp.process_samples)
 
 if __name__ == "__main__":

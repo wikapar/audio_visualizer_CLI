@@ -5,7 +5,7 @@ import numpy as np
 import amplitude_helper
 from abc import ABC, abstractmethod
 
-#minimum and maximum frequency that will be displayed in hoertz
+#minimum and maximum frequency that will be displayed in hertz
 MAX_FREQUENCY = 10000
 MIN_FREQUENCY = 40
 EPSILON = 10**(-12)

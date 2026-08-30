@@ -3,7 +3,7 @@ import soundfile as sf
 import numpy as np
 import math
 import amplitude_helper
-from amplitude_display import AmplitudeDisplay
+from amplitude_display import AmplitudeDisplay, LinearScaling, ScalingStrategy
 from amplitude_display import LogScaling
 from sounddevice import CallbackFlags
 from queue import Queue
@@ -19,7 +19,7 @@ class DisplayDesyncError(Exception):
         super().__init__(message)
 
 class SampleProcessor:
-    def __init__(self, file: sf.SoundFile, framerate: int, symbol: str):
+    def __init__(self, file: sf.SoundFile, framerate: int, symbol: str, scale: ScalingStrategy):
         self._file: sf.SoundFile = file
         self._framerate: int = framerate
         self._samplerate: int = file.samplerate
@@ -33,6 +33,8 @@ class SampleProcessor:
         self._consumed_blocks: int = 0 # number of blocks consumed by the audio callback
         self._last_drawn_block: int = 0 # number of blocks drawn by draw_blocks method
         self._symbol: str = symbol
+        self._scale = scale
+
 
     @property
     def framerate(self):
@@ -45,6 +47,12 @@ class SampleProcessor:
     @property
     def samplerate(self):
         return self._samplerate
+
+    def _decide_scaling_strategy(linear):
+        if linear:
+            return LinearScaling()
+        else:
+            return LogScaling()
 
     def _process_audio(self, audio_frames: np.ndarray, step: int) -> np.ndarray:
         """Calculates the amplitude spectrum."""
@@ -145,7 +153,7 @@ class SampleProcessor:
         Coordinates processing of the samples.
         Needs to be called wrapped with curses.wrapper to provide stdscr.
         """
-        amp_display = AmplitudeDisplay(stdscr, LogScaling(), 
+        amp_display = AmplitudeDisplay(stdscr, self._scale, 
                                        self._samplerate, self._symbol)
         producer_thread = Thread(target=self.produce_blocks)
         producer_thread.start()
