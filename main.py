@@ -11,6 +11,7 @@ def read_file(filename: str) -> Tuple[np.ndarray, int]:
     if os.path.exists(filename):
         data, samplerate = sf.read(filename)
         return data, samplerate
+    
     else:
         raise FileNotFoundError
 
@@ -19,8 +20,14 @@ def read_to_soundfile_obj(filename: str) -> sf.SoundFile:
     if os.path.exists(filename):
         file = sf.SoundFile(filename)
         return file
+    
     else:
         raise FileNotFoundError
+
+def one_char(arg: str) -> str:
+    if len(arg) != 1:
+        raise argparse.ArgumentTypeError("Symbol must be exactly one character")
+    return arg
 
 def main():
     parser = argparse.ArgumentParser(
@@ -28,7 +35,8 @@ def main():
                     description='Visualises and plays music from a given audio file',
                     epilog='Pass the filename when starting the program')
     parser.add_argument('filename', type=str)
-    parser.add_argument('-f', '--frame-rate', type=int)
+    parser.add_argument('-f', '--frame-rate', type=int, help="framerate of the display")
+    parser.add_argument('-s','--symbol',type=one_char, help="symbol that will be used for display")
     args = parser.parse_args()
     try:
         file = read_to_soundfile_obj(args.filename)
@@ -41,7 +49,10 @@ def main():
 
     if not (framerate := args.frame_rate):
         framerate = 30
-    sp = SampleProcessor(file, framerate)
+
+    if not (symbol := args.symbol):
+        symbol = '■'
+    sp = SampleProcessor(file, framerate, symbol)
     curses.wrapper(sp.process_samples)
 
 if __name__ == "__main__":

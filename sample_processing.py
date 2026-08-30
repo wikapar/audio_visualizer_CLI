@@ -19,7 +19,7 @@ class DisplayDesyncError(Exception):
         super().__init__(message)
 
 class SampleProcessor:
-    def __init__(self, file: sf.SoundFile, framerate: int):
+    def __init__(self, file: sf.SoundFile, framerate: int, symbol: str):
         self._file: sf.SoundFile = file
         self._framerate: int = framerate
         self._samplerate: int = file.samplerate
@@ -32,6 +32,7 @@ class SampleProcessor:
         self._error_event: Event = Event()
         self._consumed_blocks: int = 0 # number of blocks consumed by the audio callback
         self._last_drawn_block: int = 0 # number of blocks drawn by draw_blocks method
+        self._symbol: str = symbol
 
     @property
     def framerate(self):
@@ -144,7 +145,8 @@ class SampleProcessor:
         Coordinates processing of the samples.
         Needs to be called wrapped with curses.wrapper to provide stdscr.
         """
-        amp_display = AmplitudeDisplay(stdscr, LogScaling(), self._samplerate)
+        amp_display = AmplitudeDisplay(stdscr, LogScaling(), 
+                                       self._samplerate, self._symbol)
         producer_thread = Thread(target=self.produce_blocks)
         producer_thread.start()
         self._stream.start()

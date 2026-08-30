@@ -5,7 +5,6 @@ import numpy as np
 import amplitude_helper
 from abc import ABC, abstractmethod
 
-BLACK_SQUARE = ord("■")
 #minimum and maximum frequency that will be displayed in hoertz
 MAX_FREQUENCY = 10000
 MIN_FREQUENCY = 40
@@ -40,10 +39,11 @@ class LinearScaling(ScalingStrategy):
         return bin_idx
 
 class AmplitudeDisplay:
-    def __init__(self, stdscr: curses.window, scaling_strategy: ScalingStrategy, samplerate: int):
+    def __init__(self, stdscr: curses.window, scaling_strategy: ScalingStrategy, samplerate: int, symbol: str):
         self._scaling_strategy = scaling_strategy #determines how the bins are spaced
         self._stdscr = stdscr
         self._samplerate = samplerate
+        self._symbol = symbol
 
     @property
     def stdscr(self)->curses.window:
@@ -55,7 +55,7 @@ class AmplitudeDisplay:
         The corresponding x and y values should have corresponding indices."""
         for x_val, y_val in zip(x_values, y_values):
             for y in range(curses.LINES - 1, int(y_val) - 1, -1):
-                self._stdscr.addch(y, x_val, BLACK_SQUARE)
+                self._stdscr.addch(y, x_val, self._symbol)
         self._stdscr.refresh()
 
     def display_amplitude(self, amplitude: np.ndarray):
